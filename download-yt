@@ -84,37 +84,54 @@ mkdir -p "$OUT_DIR"
 
 OUTPUT_TMPL="$OUT_DIR/%(title)s [%(id)s].%(ext)s"
 
-# --- Скачивание --------------------------------------------------------------
+# --- Формируем аргументы yt-dlp по режиму ------------------------------------
 QUALITY_LC="$(printf '%s' "$QUALITY" | tr '[:upper:]' '[:lower:]')"
+
+# Общие опции + встроенные повторы (помогают при обрывах/тайм-аутах).
+COMMON_ARGS=(
+  --no-playlist
+  --embed-metadata
+  --retries 10
+  --fragment-retries 10
+  --extractor-retries 5
+  -o "$OUTPUT_TMPL"
+)
 
 if [[ "$QUALITY_LC" == "mp3" ]]; then
   info "Скачиваю аудио в mp3 (максимальное качество) → $OUT_DIR"
   # -x               извлечь аудио
   # --audio-format   привести к mp3 (конвертация на ffmpeg, если mp3-дорожки нет)
   # --audio-quality 0  наилучшее качество (VBR ~245 kbps)
-  exec yt-dlp \
-    -x \
-    --audio-format mp3 \
-    --audio-quality 0 \
-    --embed-thumbnail \
-    --embed-metadata \
-    --no-playlist \
-    -o "$OUTPUT_TMPL" \
-    "$URL"
+  MODE_ARGS=( -x --audio-format mp3 --audio-quality 0 --embed-thumbnail )
 
 elif [[ "$QUALITY_LC" =~ ^[0-9]+$ ]]; then
   HEIGHT="$QUALITY_LC"
   info "Скачиваю видео до ${HEIGHT}p (mp4) → $OUT_DIR"
   # Берём лучшее видео с высотой <= HEIGHT + лучшее аудио, склеиваем в mp4.
-  exec yt-dlp \
-    -f "bv*[height<=${HEIGHT}]+ba/b[height<=${HEIGHT}]/bv*+ba/b" \
-    --merge-output-format mp4 \
-    --embed-metadata \
-    --no-playlist \
-    -o "$OUTPUT_TMPL" \
-    "$URL"
+  MODE_ARGS=( -f "bv*[height<=${HEIGHT}]+ba/b[height<=${HEIGHT}]/bv*+ba/b" --merge-output-format mp4 )
 
 else
   err "Неизвестное качество: «$QUALITY». Используйте число (720, 1080…) или mp3."
   msg; usage; exit 1
 fi
+
+# --- Запуск с повтором при «плавающем» HTTP 403 ------------------------------
+# YouTube иногда отдаёт ссылки на поток, которые затем возвращают 403.
+# Повторный запуск заново извлекает свежие ссылки и обычно решает проблему.
+MAX_TRIES=3
+attempt=1
+while (( attempt <= MAX_TRIES )); do
+  if yt-dlp "${MODE_ARGS[@]}" "${COMMON_ARGS[@]}" "$URL"; then
+    exit 0
+  fi
+  status=$?
+  if (( attempt < MAX_TRIES )); then
+    warn "Попытка $attempt не удалась (возможно, HTTP 403). Повтор со свежими ссылками…"
+    sleep 2
+  fi
+  (( attempt++ ))
+done
+
+err "Не удалось скачать после ${MAX_TRIES} попыток."
+err "Попробуйте обновить yt-dlp:  brew upgrade yt-dlp"
+exit "${status:-1}"
