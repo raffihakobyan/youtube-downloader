@@ -72,7 +72,7 @@ case ":$PATH:" in
 esac
 
 printf '\n%s✓ Готово!%s Установлено в: %s\n\n' "$C_GREEN$C_BOLD" "$C_RESET" "$DEST"
-printf 'Примеры:\n'
-printf '  download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM 720\n'
-printf '  download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM 1080\n'
-printf '  download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM mp3\n'
+printf 'Примеры (ссылку берите в кавычки!):\n'
+printf '  download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" 720\n'
+printf '  download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" 1080\n'
+printf '  download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" mp3\n'

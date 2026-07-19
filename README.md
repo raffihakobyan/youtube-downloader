@@ -3,10 +3,14 @@
 Простой CLI для macOS, чтобы скачивать видео и аудио с YouTube одной короткой командой.
 
 ```bash
-download-yt <URL> 720     # видео до 720p  (mp4)
-download-yt <URL> 1080    # видео до 1080p (mp4)
-download-yt <URL> mp3     # аудио в mp3, максимальное качество
+download-yt "<URL>"         # видео 1080p по умолчанию (mp4)
+download-yt "<URL>" 720     # видео до 720p  (mp4)
+download-yt "<URL>" mp3     # аудио в mp3, максимальное качество
 ```
+
+> ⚠️ **Ссылку всегда берите в кавычки.** В zsh символы `?` и `&` из URL
+> раскрываются как шаблон, и без кавычек вы получите ошибку
+> `zsh: no matches found`.
 
 Под капотом — [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) + [`ffmpeg`](https://ffmpeg.org/).
 
@@ -16,6 +20,8 @@ download-yt <URL> mp3     # аудио в mp3, максимальное каче
 
 - 🎬 **Видео** любого разрешения (`144`, `240`, `360`, `480`, `720`, `1080`, `1440`, `2160`) — скачивается лучшая дорожка **не выше** указанной высоты и склеивается в `mp4`.
 - 🎵 **Аудио mp3** максимального качества (`--audio-quality 0`).
+- ⚙️ **Качество по умолчанию — 1080p**, если второй аргумент не указан.
+- 📂 **Сохраняет в текущую папку терминала** (можно переопределить `DOWNLOAD_YT_DIR`).
 - 🔁 **Автоконвертация**: если у видео нет готовой mp3-дорожки, аудио **конвертируется локально через ffmpeg** (на «железе» вашего Mac).
 - 🏷 Встраивает метаданные и обложку.
 - 📦 Установка и удаление — **одной командой**.
@@ -55,16 +61,16 @@ curl -fsSL https://raw.githubusercontent.com/raffihakobyan/youtube-downloader/ma
 ## Использование
 
 ```bash
-download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM 720
-download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM 1080
-download-yt https://www.youtube.com/watch?v=vZqvVhcHsZM mp3
+download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM"        # 1080p по умолчанию
+download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" 720
+download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" mp3
 ```
 
-Файлы по умолчанию сохраняются в `~/Downloads`.
+Файлы сохраняются в **текущую папку**, из которой запущена команда.
 Изменить каталог можно переменной окружения:
 
 ```bash
-DOWNLOAD_YT_DIR="$HOME/Music" download-yt <URL> mp3
+DOWNLOAD_YT_DIR="$HOME/Music" download-yt "<URL>" mp3
 ```
 
 Справка и версия:
@@ -103,6 +109,7 @@ brew uninstall yt-dlp ffmpeg
 
 | Аргумент | Формат yt-dlp | Результат |
 |----------|---------------|-----------|
+| _(не указан)_ | как `1080` | `mp4` до 1080p |
 | число (напр. `720`) | `bv*[height<=720]+ba/b[height<=720]/…` | `mp4` до указанной высоты |
 | `mp3` | `-x --audio-format mp3 --audio-quality 0` | `mp3`, лучшее качество |
 
@@ -114,6 +121,11 @@ brew uninstall yt-dlp ffmpeg
 
 ## Устранение неполадок
 
+- **`zsh: no matches found: https://...`** — вы не взяли ссылку в кавычки.
+  zsh раскрывает `?` и `&` как шаблон файла. Правильно:
+  ```bash
+  download-yt "https://www.youtube.com/watch?v=vZqvVhcHsZM" 720
+  ```
 - **`download-yt: command not found`** — каталог установки не в `PATH`.
   Установщик подскажет, какую строку добавить в `~/.zshrc`, например:
   ```bash
